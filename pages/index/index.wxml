@@ -1,0 +1,310 @@
+<!--pages/index/index.wxml-->
+<view class="app">
+  <!-- 头部 -->
+  <header class="app-header">
+    <view class="header-content">
+      <text class="app-title">🏠 家庭食材管理</text>
+      <text class="app-subtitle">记录每一样食材，避免浪费</text>
+    </view>
+    <!-- 用户ID显示 -->
+    <view class="user-id-section">
+      <text class="user-id-label">用户ID:</text>
+      <text class="user-id-value" selectable="true">{{userId}}</text>
+    </view>
+    <!-- 设置按钮 -->
+    <view class="settings-btn" bindtap="openSettings">
+      <text>⚙️</text>
+    </view>
+  </header>
+
+  <main class="app-main">
+    <!-- 添加物品表单 -->
+    <view class="item-form">
+      <text class="form-title">添加物品</text>
+      <form bindsubmit="handleSubmit">
+        <view class="form-group">
+          <text class="label">物品名称</text>
+          <input style="display: flex; box-sizing: border-box; height: 79rpx" 
+            class="form-input" 
+            name="name" 
+            placeholder="请输入物品名称" 
+            value="{{form.name}}"
+            bindinput="onInputName"
+            required
+          />
+        </view>
+        
+        <view class="form-group">
+          <text class="label">数量</text>
+          <input style="height: auto; display: block; box-sizing: border-box; left: 0rpx; top: 0rpx" 
+            class="form-input" 
+            name="quantity" 
+            type="text" 
+            placeholder="1" 
+            value="{{form.quantity}}"
+            bindinput="onInputQuantity"
+          />
+        </view>
+        
+        <view class="form-group">
+          <text class="label">过期日期</text>
+          <picker mode="date" value="{{form.expiry_date}}" bindchange="onExpiryDateChange">
+            <view class="form-input picker-field">
+              <text>{{form.expiry_date || '请选择日期'}}</text>
+            </view>
+          </picker>
+        </view>
+        
+        <view class="form-group">
+          <view class="label-row">
+            <text class="label">存放位置</text>
+            <view class="add-location-btn" bindtap="openLocationModal">+</view>
+          </view>
+          <view class="location-options">
+            <view 
+              wx:for="{{formLocationOptions}}" 
+              wx:key="value"
+              class="location-btn {{form.location === item.value ? 'active' : ''}}"
+              data-value="{{item.value}}"
+              bindtap="selectLocation"
+            >
+              {{item.label}}
+            </view>
+          </view>
+        </view>
+        
+        <button class="submit-btn" form-type="submit" disabled="{{loading}}">
+          {{loading ? '添加中...' : '添加物品'}}
+        </button>
+      </form>
+    </view>
+
+    <!-- 物品列表 -->
+    <view class="item-list">
+      <view class="list-header">
+        <text class="list-title">物品清单</text>
+        <view class="header-right">
+          <text class="item-count">{{filteredItems.length}} 件</text>
+          <view class="view-toggle">
+            <view 
+              class="toggle-btn {{viewMode === 'list' ? 'active' : ''}}" 
+              bindtap="changeViewMode"
+              data-mode="list"
+            >☰</view>
+            <view 
+              class="toggle-btn {{viewMode === 'grid' ? 'active' : ''}}" 
+              bindtap="changeViewMode"
+              data-mode="grid"
+            >⊞</view>
+          </view>
+        </view>
+      </view>
+      
+      <!-- 搜索和筛选区域 -->
+      <view class="filter-bar">
+        <view class="search-box">
+          <text class="search-icon">🔍</text>
+          <input style="height: 75rpx; display: block; box-sizing: border-box" 
+            class="search-input" 
+            placeholder="搜索食材名称..." 
+            value="{{searchQuery}}"
+            bindinput="onSearchInput"
+          />
+          <view wx:if="{{searchQuery}}" class="clear-btn" bindtap="clearSearch">✕</view>
+        </view>
+        
+        <view class="location-filter">
+          <view 
+            wx:for="{{filterLocationOptions}}" 
+            wx:key="value"
+            class="filter-btn {{selectedLocation === item.value ? 'active' : ''}}"
+            data-value="{{item.value}}"
+            bindtap="selectFilterLocation"
+          >
+            {{item.label}}
+          </view>
+        </view>
+      </view>
+      
+      <!-- 加载状态 -->
+      <view wx:if="{{loading}}" class="loading">
+        <view class="loading-spinner"></view>
+        <text>加载中...</text>
+      </view>
+      
+      <!-- 空状态 -->
+      <view wx:elif="{{filteredItems.length === 0}}" class="empty-state">
+        <text class="empty-icon">📦</text>
+        <text class="empty-text">{{items.length === 0 ? '还没有物品' : '没有匹配的物品'}}</text>
+        <text class="empty-hint">{{items.length === 0 ? '点击上方添加按钮添加第一个物品吧' : '试试调整搜索条件'}}</text>
+      </view>
+      
+      <!-- 物品列表 -->
+      <view wx:else class="items {{viewMode}}">
+        <view 
+          wx:for="{{filteredItems}}" 
+          wx:key="id"
+          class="item-card status-{{item.status}} {{viewMode}}"
+          data-id="{{item.id}}"
+          data-name="{{item.name}}"
+          bindtap="onItemTap"
+        >
+          <!-- 列表视图 -->
+          <block wx:if="{{viewMode === 'list'}}">
+            <view class="card-header">
+              <text class="item-name">{{item.name}}</text>
+              <text class="item-quantity">×{{item.quantity}}</text>
+            </view>
+            <view class="card-body">
+              <view class="item-location">
+                <text class="location-icon">{{item.locationIcon}}</text>
+                {{item.location}}
+              </view>
+              <view class="item-expiry status-{{item.status}}">
+                {{item.expiryText}}
+              </view>
+            </view>
+            <view class="card-footer">
+              <view class="delete-btn" data-id="{{item.id}}" data-name="{{item.name}}" catchtap="confirmDelete">
+                ✓ 已吃完
+              </view>
+            </view>
+          </block>
+          
+          <!-- 网格视图 -->
+          <block wx:else>
+            <view class="grid-status-bar status-{{item.status}}"></view>
+            <view class="grid-content">
+              <view class="grid-name">{{item.name}}</view>
+              <view class="grid-quantity">×{{item.quantity}}</view>
+              <view class="grid-location">
+                <text>{{item.locationIcon}}</text>
+                <text>{{item.location}}</text>
+              </view>
+              <view class="grid-expiry status-{{item.status}}">
+                {{item.expiryText}}
+              </view>
+              <view class="grid-delete-btn" data-id="{{item.id}}" data-name="{{item.name}}" catchtap="confirmDelete">
+                ✓ 吃完
+              </view>
+            </view>
+          </block>
+        </view>
+      </view>
+    </view>
+  </main>
+
+  <!-- 配置提示 -->
+  <view wx:if="{{!isSupabaseConfigured}}" class="config-warning" bindtap="openSettings">
+    <text>⚠️ 请配置 Supabase 环境变量</text>
+  </view>
+
+  <!-- 位置管理弹窗 -->
+  <view wx:if="{{showLocationModal}}" class="modal-overlay" bindtap="closeLocationModal">
+    <view class="modal-content" catchtap="preventBubble">
+      <text class="modal-title">位置管理</text>
+      
+      <!-- 新增位置 -->
+      <view class="add-location-row">
+        <input style="height: 87rpx; display: block; box-sizing: border-box" 
+          class="modal-input" 
+          placeholder="输入新位置名称" 
+          value="{{newLocationName}}"
+          bindinput="onNewLocationInput"
+          bindconfirm="addLocation"
+        />
+        <view class="add-btn" bindtap="addLocation">+</view>
+      </view>
+      
+      <!-- 位置列表 -->
+      <scroll-view class="location-list" scroll-y>
+        <view 
+          wx:for="{{allLocations}}" 
+          wx:key="value"
+          class="location-item"
+        >
+          <block wx:if="{{editingId === item.value}}">
+            <input 
+              class="edit-input" 
+              value="{{editingName}}"
+              bindinput="onEditNameInput"
+              bindconfirm="saveEdit"
+              bindblur="cancelEdit"
+              focus="{{editingId === item.value}}"
+            />
+            <view class="item-actions">
+              <view class="action-btn save" bindtap="saveEdit">✓</view>
+              <view class="action-btn cancel" bindtap="cancelEdit">✕</view>
+            </view>
+          </block>
+          <block wx:else>
+            <text class="location-name">{{item.label}}</text>
+            <view class="item-actions">
+              <view 
+                wx:if="{{!item.isDefault}}" 
+                class="action-btn edit" 
+                data-location="{{item}}"
+                bindtap="startEdit"
+              >✎</view>
+              <view 
+                wx:if="{{!item.isDefault}}"
+                class="action-btn delete" 
+                data-location="{{item}}"
+                catchtap="deleteLocation"
+              >🗑</view>
+            </view>
+          </block>
+        </view>
+      </scroll-view>
+      
+      <view class="modal-btn close" bindtap="closeLocationModal" style="width: 600rpx; display: block; box-sizing: border-box">完成</view>
+    </view>
+  </view>
+
+  <!-- 设置弹窗 -->
+  <view wx:if="{{showSettingsModal}}" class="modal-overlay" bindtap="closeSettingsModal">
+    <view class="modal-content" catchtap="preventBubble">
+      <text class="modal-title">设置 Supabase</text>
+      
+      <!-- 用户ID显示区域 -->
+      <view class="user-id-display">
+        <text class="user-id-label">您的用户ID（用于数据隔离）:</text>
+        <view class="user-id-value-box" bindtap="copyUserId">
+          <text class="user-id-text" selectable="true">{{userId}}</text>
+          <text class="copy-icon">📋</text>
+        </view>
+      </view>
+      
+      <view class="settings-form">
+        <view class="form-group">
+          <text class="label">Supabase URL</text>
+          <input 
+            class="form-input" 
+            placeholder="https://xxxxx.supabase.co" 
+            value="{{settingsUrl}}"
+            bindinput="onSettingsUrlInput"
+          />
+        </view>
+        <view class="form-group">
+          <text class="label">Anon Key</text>
+          <input 
+            class="form-input" 
+            placeholder="your_anon_key" 
+            value="{{settingsKey}}"
+            bindinput="onSettingsKeyInput"
+          />
+        </view>
+        <view class="form-group">
+          <text class="label">测试连接</text>
+          <button class="test-btn" bindtap="testConnection" loading="{{testing}}">
+            {{testing ? '测试中...' : '测试连接'}}
+          </button>
+        </view>
+      </view>
+      <view class="modal-actions">
+        <view class="modal-btn cancel" bindtap="closeSettingsModal">取消</view>
+        <view class="modal-btn save" bindtap="saveSettings">保存</view>
+      </view>
+    </view>
+  </view>
+</view>
