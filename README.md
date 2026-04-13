@@ -1,4 +1,4 @@
-# 🏠 Home Pantry 家庭食材管理
+﻿# 🏠 Home Pantry 家庭食材管理
 
 一个简洁的家庭食材管理小程序，帮助你记录食材、追踪过期日期，避免食物浪费。
 
@@ -189,7 +189,7 @@ MIT License
 
 ## 📞 联系方式
 
-- GitHub: https://github.com/MasonWest/home-pantry
+- GitHub: https://github.com/MasonWest/wechat-fridge-miniprogram
 - 问题反馈: 在 GitHub 上提交 Issue
 
 ---

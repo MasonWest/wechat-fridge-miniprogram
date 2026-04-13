@@ -312,7 +312,103 @@ Page({
   onInputName(e) {
     this.setData({ 'form.name': e.detail.value })
   },
-  
+
+  // ===== OCR 识别功能 =====
+
+  // 拍照/选择图片识别商品
+  async recognizeImage() {
+    try {
+      // 1. 选择图片
+      const chooseResult = await new Promise((resolve, reject) => {
+        wx.chooseImage({
+          count: 1,
+          sizeType: ['compressed'], // 使用压缩图片
+          sourceType: ['album', 'camera'], // 相册和相机
+          success: resolve,
+          fail: reject
+        })
+      })
+
+      if (!chooseResult.tempFilePaths || chooseResult.tempFilePaths.length === 0) {
+        wx.showToast({
+          title: '选择图片失败',
+          icon: 'none'
+        })
+        return
+      }
+
+      const imagePath = chooseResult.tempFilePaths[0]
+      console.log('选择的图片:', imagePath)
+
+      // 2. 读取图片并转换为 base64
+      wx.showLoading({ title: '识别中...' })
+
+      const imageBase64 = await new Promise((resolve, reject) => {
+        wx.getFileSystemManager().readFile({
+          filePath: imagePath,
+          encoding: 'base64',
+          success: (res) => resolve(res.data),
+          fail: reject
+        })
+      })
+
+      // 3. 调用 OCR 识别
+      const { callTencentOCR, parseProductName, parseExpiryDate } = require('../../utils/ocr.js')
+      const ocrResult = await callTencentOCR(imageBase64)
+
+      if (ocrResult.error) {
+        throw new Error(ocrResult.error)
+      }
+
+      // 4. 解析识别结果
+      const productName = parseProductName(ocrResult.data)
+      const { expiryDate } = parseExpiryDate(ocrResult.data)
+
+      console.log('识别结果:', { productName, expiryDate })
+
+      // 5. 填充表单
+      const updates = {}
+
+      if (productName) {
+        updates['form.name'] = productName
+      }
+
+      if (expiryDate) {
+        updates['form.expiry_date'] = expiryDate
+      }
+
+      if (Object.keys(updates).length > 0) {
+        this.setData(updates)
+        wx.showToast({
+          title: '识别成功',
+          icon: 'success'
+        })
+      } else {
+        wx.showToast({
+          title: '未能识别到有效信息',
+          icon: 'none'
+        })
+      }
+
+      wx.hideLoading()
+
+    } catch (error) {
+      wx.hideLoading()
+      console.error('OCR 识别失败:', error)
+
+      if (error.errMsg && error.errMsg.includes('cancel')) {
+        // 用户取消选择，不显示错误提示
+        return
+      }
+
+      wx.showToast({
+        title: '识别失败: ' + (error.message || '未知错误'),
+        icon: 'none',
+        duration: 3000
+      })
+    }
+  },
+
   onInputQuantity(e) {
     const value = e.detail.value
     // 如果为空或只有负号，允许清空

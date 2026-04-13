@@ -136,6 +136,22 @@
   justify-content: center;
 }
 
+.scan-barcode-btn {
+  width: 44rpx;
+  height: 44rpx;
+  margin-left: 16rpx;
+  border: none;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7EC8A3 0%, #5AB88A 100%);
+  color: #fff;
+  font-size: 28rpx;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
 .form-input {
   width: 100%;
   padding: 24rpx 28rpx;

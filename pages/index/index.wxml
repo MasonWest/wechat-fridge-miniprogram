@@ -23,11 +23,14 @@
       <text class="form-title">添加物品</text>
       <form bindsubmit="handleSubmit">
         <view class="form-group">
-          <text class="label">物品名称</text>
-          <input style="display: flex; box-sizing: border-box; height: 79rpx" 
-            class="form-input" 
-            name="name" 
-            placeholder="请输入物品名称" 
+          <view class="label-row">
+            <text class="label">物品名称</text>
+            <view class="scan-barcode-btn" bindtap="recognizeImage">📷</view>
+          </view>
+          <input style="display: flex; box-sizing: border-box; height: 79rpx"
+            class="form-input"
+            name="name"
+            placeholder="请输入物品名称或拍照识别"
             value="{{form.name}}"
             bindinput="onInputName"
             required
